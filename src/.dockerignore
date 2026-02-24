@@ -1,20 +1,13 @@
-## Ignore build and runtime artifacts
-bin/
-obj/
-out/
-
-## Ignore Visual Studio files
-.vs/
-*.user
-*.suo
-
-## Ignore test results
-TestResults/
-
-## Ignore local environment files
-.env
-appsettings.Development.json
-
-## Ignore git metadata
-.git/
-.gitignore
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/.git/
+**/.gitignore
+**/*.user
+**/*.suo
+**/*.userosscache
+**/*.sln.docstates
+**/node_modules/
+**/npm-debug.log
+**/yarn-error.log

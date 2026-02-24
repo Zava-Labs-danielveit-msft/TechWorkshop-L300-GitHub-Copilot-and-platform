@@ -2,11 +2,59 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "environmentName": {
-      "value": "${AZURE_ENV_NAME}"
-    },
     "location": {
-      "value": "${AZURE_LOCATION}"
+      "value": "westus3"
+    },
+    "environmentName": {
+      "value": "dev"
+    },
+    "namePrefix": {
+      "value": "zava"
+    },
+    "acrSku": {
+      "value": "Basic"
+    },
+    "appServiceSku": {
+      "value": "B1"
+    },
+    "appImageName": {
+      "value": "zavastorefront:dev"
+    },
+    "appPort": {
+      "value": "8080"
+    },
+    "aiSkuName": {
+      "value": "S0"
+    },
+    "gpt4DeploymentName": {
+      "value": "gpt-4"
+    },
+    "gpt4ModelName": {
+      "value": "gpt-4"
+    },
+    "gpt4ModelVersion": {
+      "value": "latest"
+    },
+    "gpt4Capacity": {
+      "value": 1
+    },
+    "enableGpt4Deployment": {
+      "value": false
+    },
+    "phiDeploymentName": {
+      "value": "phi-4"
+    },
+    "phiModelName": {
+      "value": "phi-4"
+    },
+    "phiModelVersion": {
+      "value": "latest"
+    },
+    "phiCapacity": {
+      "value": 1
+    },
+    "enablePhiDeployment": {
+      "value": false
     }
   }
 }

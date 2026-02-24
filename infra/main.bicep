@@ -1,125 +1,142 @@
 targetScope = 'resourceGroup'
 
-@minLength(1)
-@maxLength(64)
-@description('Name of the environment (e.g. dev, test, prod)')
-param environmentName string
-
-@minLength(1)
-@description('Primary location for all resources')
+@description('Azure region for all resources.')
 param location string = 'westus3'
 
-@description('Container image to deploy. Defaults to a placeholder; updated after first build.')
-param containerImage string = 'mcr.microsoft.com/appsvc/staticsite:latest'
+@description('Environment name (e.g. dev, test, prod).')
+param environmentName string = 'dev'
 
-// Generate a unique token scoped to this subscription + environment + location
-var resourceToken = toLower(uniqueString(resourceGroup().id, environmentName, location))
+@description('Short prefix for resource naming.')
+param namePrefix string = 'zava'
 
-// Resource names — computed here so they can be referenced for role-assignment name/scope
-var acrName = 'cr${resourceToken}'
-var webAppName = 'app-${resourceToken}'
+@description('SKU for Azure Container Registry.')
+@allowed([
+  'Basic'
+  'Standard'
+  'Premium'
+])
+param acrSku string = 'Basic'
 
-// AcrPull built-in role definition ID
-var acrPullRoleId = '7f951dda-4ed3-4680-a7ca-43fe172d538d'
+@description('SKU for App Service Plan (Linux).')
+param appServiceSku string = 'B1'
 
-var tags = {
-  'azd-env-name': environmentName
-  environment: environmentName
-}
+@description('Container image name (repository:tag) to deploy.')
+param appImageName string = 'zavastorefront:dev'
 
-// ---------------------------------------------------------------------------
-// Log Analytics Workspace (backing store for Application Insights)
-// ---------------------------------------------------------------------------
-module logAnalytics './modules/logAnalytics.bicep' = {
-  name: 'logAnalytics'
-  params: {
-    name: 'log-${resourceToken}'
-    location: location
-    tags: tags
-  }
-}
+@description('Container port exposed by the app.')
+param appPort string = '8080'
 
-// ---------------------------------------------------------------------------
-// Application Insights
-// ---------------------------------------------------------------------------
-module appInsights './modules/appInsights.bicep' = {
-  name: 'appInsights'
-  params: {
-    name: 'appi-${resourceToken}'
-    location: location
-    tags: tags
-    logAnalyticsWorkspaceId: logAnalytics.outputs.id
-  }
-}
+@description('Azure AI (Foundry) account SKU.')
+param aiSkuName string = 'S0'
 
-// ---------------------------------------------------------------------------
-// Azure Container Registry (adminUserEnabled: false — RBAC pull only)
-// ---------------------------------------------------------------------------
-module acr './modules/acr.bicep' = {
+@description('GPT-4 deployment name.')
+param gpt4DeploymentName string = 'gpt-4'
+
+@description('GPT-4 model name.')
+param gpt4ModelName string = 'gpt-4'
+
+@description('GPT-4 model version.')
+param gpt4ModelVersion string = 'latest'
+
+@description('GPT-4 deployment capacity.')
+param gpt4Capacity int = 1
+
+@description('Whether to deploy the GPT-4 model in Azure AI Foundry.')
+param enableGpt4Deployment bool = true
+
+@description('Phi deployment name.')
+param phiDeploymentName string = 'phi-4'
+
+@description('Phi model name.')
+param phiModelName string = 'phi-4'
+
+@description('Phi model version.')
+param phiModelVersion string = 'latest'
+
+@description('Phi deployment capacity.')
+param phiCapacity int = 1
+
+@description('Whether to deploy the Phi model in Azure AI Foundry.')
+param enablePhiDeployment bool = true
+
+var cleanPrefix = toLower(replace(namePrefix, '-', ''))
+var suffix = toLower(uniqueString(resourceGroup().id, environmentName))
+
+var acrName = '${cleanPrefix}acr${suffix}'
+var logAnalyticsName = toLower('${namePrefix}-law-${environmentName}')
+var appInsightsName = toLower('${namePrefix}-appi-${environmentName}')
+var appServicePlanName = toLower('${namePrefix}-asp-${environmentName}')
+var webAppName = toLower('${namePrefix}-web-${environmentName}-${suffix}')
+var aiAccountName = '${cleanPrefix}ai${suffix}'
+
+module acr 'modules/acr.bicep' = {
   name: 'acr'
   params: {
     name: acrName
     location: location
-    tags: tags
-    sku: 'Basic'
+    sku: acrSku
   }
 }
 
-// ---------------------------------------------------------------------------
-// App Service Plan + Linux Web App for Containers (system-assigned identity)
-// ---------------------------------------------------------------------------
-module appService './modules/appService.bicep' = {
-  name: 'appService'
+module logAnalytics 'modules/logAnalytics.bicep' = {
+  name: 'log-analytics'
   params: {
-    appServicePlanName: 'asp-${resourceToken}'
-    webAppName: webAppName
+    name: logAnalyticsName
     location: location
-    tags: tags
-    containerImage: '${acr.outputs.loginServer}/${containerImage}'
+  }
+}
+
+module appInsights 'modules/appInsights.bicep' = {
+  name: 'app-insights'
+  params: {
+    name: appInsightsName
+    location: location
+    workspaceResourceId: logAnalytics.outputs.id
+  }
+}
+
+module appService 'modules/appService.bicep' = {
+  name: 'app-service'
+  params: {
+    name: webAppName
+    location: location
+    planName: appServicePlanName
+    planSku: appServiceSku
+    imageName: '${acr.outputs.loginServer}/${appImageName}'
     acrLoginServer: acr.outputs.loginServer
+    appPort: appPort
     appInsightsConnectionString: appInsights.outputs.connectionString
     appInsightsInstrumentationKey: appInsights.outputs.instrumentationKey
   }
 }
 
-// ---------------------------------------------------------------------------
-// AcrPull role assignment — Web App managed identity pulls images via RBAC
-// Built-in AcrPull role: 7f951dda-4ed3-4680-a7ca-43fe172d538d
-// Use locally-computed acrName/webAppName (known at deploy start) for name & scope.
-// ---------------------------------------------------------------------------
-resource acrExisting 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
-  name: acrName
-}
-
-resource acrPullRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(acrName, webAppName, acrPullRoleId)
-  scope: acrExisting
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', acrPullRoleId)
-    principalId: appService.outputs.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Azure AI Foundry (Microsoft Foundry) — GPT-4 and Phi in westus3
-// ---------------------------------------------------------------------------
-module aiFoundry './modules/aiFoundry.bicep' = {
-  name: 'aiFoundry'
+module roleAssignments 'modules/roleAssignments.bicep' = {
+  name: 'role-assignments'
   params: {
-    name: 'aif-${resourceToken}'
-    location: location
-    tags: tags
+    acrId: acr.outputs.id
+    principalId: appService.outputs.principalId
   }
 }
 
-// ---------------------------------------------------------------------------
-// Outputs consumed by AZD and application configuration
-// ---------------------------------------------------------------------------
-output AZURE_CONTAINER_REGISTRY_ENDPOINT string = acr.outputs.loginServer
-output AZURE_CONTAINER_REGISTRY_NAME string = acr.outputs.name
-output AZURE_WEB_APP_NAME string = appService.outputs.name
-output AZURE_WEB_APP_URL string = 'https://${appService.outputs.defaultHostname}'
-output APPLICATIONINSIGHTS_CONNECTION_STRING string = appInsights.outputs.connectionString
-output AZURE_AI_FOUNDRY_ENDPOINT string = aiFoundry.outputs.endpoint
-output AZURE_AI_FOUNDRY_NAME string = aiFoundry.outputs.name
+module foundry 'modules/foundry.bicep' = {
+  name: 'foundry'
+  params: {
+    name: aiAccountName
+    location: location
+    skuName: aiSkuName
+    gpt4DeploymentName: gpt4DeploymentName
+    gpt4ModelName: gpt4ModelName
+    gpt4ModelVersion: gpt4ModelVersion
+    gpt4Capacity: gpt4Capacity
+    enableGpt4Deployment: enableGpt4Deployment
+    phiDeploymentName: phiDeploymentName
+    phiModelName: phiModelName
+    phiModelVersion: phiModelVersion
+    phiCapacity: phiCapacity
+    enablePhiDeployment: enablePhiDeployment
+  }
+}
+
+output acrLoginServer string = acr.outputs.loginServer
+output webAppName string = appService.outputs.name
+output aiEndpoint string = foundry.outputs.endpoint

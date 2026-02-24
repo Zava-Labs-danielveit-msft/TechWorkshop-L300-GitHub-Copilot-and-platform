@@ -1,23 +1,19 @@
-@description('Name of the Log Analytics workspace')
+@description('Log Analytics workspace name.')
 param name string
 
-@description('Azure region for the resource')
+@description('Azure region for the workspace.')
 param location string
 
-@description('Resource tags')
-param tags object = {}
+@description('Retention in days for logs.')
+param retentionInDays int = 30
 
-resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
+resource workspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: name
   location: location
-  tags: tags
   properties: {
-    sku: {
-      name: 'PerGB2018'
-    }
-    retentionInDays: 30
+    retentionInDays: retentionInDays
   }
 }
 
-output id string = logAnalyticsWorkspace.id
-output name string = logAnalyticsWorkspace.name
+output id string = workspace.id
+output name string = workspace.name
