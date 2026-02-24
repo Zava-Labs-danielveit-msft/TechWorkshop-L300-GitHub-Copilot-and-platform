@@ -1,0 +1,15 @@
+name: zavastorefront
+metadata:
+  template: zavastorefront-infra
+infra:
+  path: infra
+services:
+  web:
+    project: src
+    language: dotnet
+    host: appservice
+    docker:
+      path: src
+      dockerfile: src/Dockerfile
+    env:
+      ASPNETCORE_URLS: http://+:8080
