@@ -15,7 +15,7 @@ If you run the command from Git Bash on Windows, prefix the scope with `//` to a
 ```bash
 az ad sp create-for-rbac --name "github-actions-sp" \
 	--role Contributor \
-	--scopes "//subscriptions/edb9f81a-919c-4c3f-8839-8d8317e85754/resourceGroups/rg-twl300-ghcp" \
+	--scopes "//subscriptions/<YOUR_SUBSCRIPTION_ID>/resourceGroups/<YOUR_RESOURCE_GROUP>" \
 	--json-auth
 ```
 
@@ -24,7 +24,7 @@ If you run it from PowerShell, use the normal scope path:
 ```powershell
 az ad sp create-for-rbac --name "github-actions-sp" `
 	--role Contributor `
-	--scopes "/subscriptions/edb9f81a-919c-4c3f-8839-8d8317e85754/resourceGroups/rg-twl300-ghcp" `
+	--scopes "/subscriptions/<YOUR_SUBSCRIPTION_ID>/resourceGroups/<YOUR_RESOURCE_GROUP>" `
 	--json-auth
 ```
 
@@ -35,8 +35,8 @@ Create these repository variables:
 - AZURE_CONTAINER_REGISTRY_NAME (example: zavaacrfskgi7ktnhul2)
 - AZURE_APP_SERVICE_NAME (example: zava-web-dev-fskgi7ktnhul2)
 
-The image name is set to `simplestore` in the workflow env. Change it there if needed.
+The image name is set to `zavastorefront` in the workflow env. Change it there if needed.
 
 ## Run
 
-Trigger the workflow manually or push to main to deploy.
+Trigger the workflow manually or by pushing to the `main` or `dev` branch to deploy.
