@@ -76,7 +76,7 @@ resource phiDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05
   }
   properties: {
     model: {
-      format: 'OpenAI'
+      format: 'microsoft'
       name: phiModelName
       version: phiModelVersion
     }
