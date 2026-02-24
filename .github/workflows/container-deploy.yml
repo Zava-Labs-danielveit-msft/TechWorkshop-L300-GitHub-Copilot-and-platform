@@ -3,13 +3,11 @@ name: Build and Deploy to Azure App Service
 on:
   push:
     branches: [ main, dev ]
-  pull_request:
-    branches: [ main, dev ]
   workflow_dispatch:
 
 env:
   REGISTRY: ${{ vars.AZURE_CONTAINER_REGISTRY_NAME }}.azurecr.io
-  IMAGE_NAME: simplestore
+  IMAGE_NAME: zavastorefront
   APP_NAME: ${{ vars.AZURE_APP_SERVICE_NAME }}
 
 jobs:
@@ -33,9 +31,15 @@ jobs:
           # Build the Docker image
           docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest ./src
 
-          # Push both tags to registry
+          # Push SHA and latest tags to registry
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+          # Additionally tag and push "dev" when building from the dev branch
+          if [ "${{ github.ref_name }}" = "dev" ]; then
+            docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev
+            docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev
+          fi
 
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
