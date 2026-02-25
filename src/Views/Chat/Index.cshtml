@@ -1,0 +1,83 @@
+@{
+    ViewData["Title"] = "Foundry Chat";
+}
+
+<div class="container mt-4">
+    <h1 class="mb-3">Foundry Chat</h1>
+    <p class="text-muted">Send a message to the Phi-4 deployment and append the response to the chat log.</p>
+
+    <div class="chat-panel">
+        <label for="chatLog" class="form-label">Conversation</label>
+        <textarea id="chatLog" class="form-control chat-log" rows="10" readonly></textarea>
+
+        <div class="mt-3">
+            <label for="chatInput" class="form-label">Your message</label>
+            <div class="input-group">
+                <input id="chatInput" class="form-control" type="text" placeholder="Ask the model a question" />
+                <button id="sendButton" class="btn btn-primary" type="button">Send</button>
+            </div>
+            <div id="chatStatus" class="form-text text-muted mt-2"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const chatLog = document.getElementById("chatLog");
+            const chatInput = document.getElementById("chatInput");
+            const sendButton = document.getElementById("sendButton");
+            const chatStatus = document.getElementById("chatStatus");
+
+            const appendLine = (label, text) => {
+                const prefix = label ? `${label}: ` : "";
+                chatLog.value = `${chatLog.value}${prefix}${text}\n`;
+                chatLog.scrollTop = chatLog.scrollHeight;
+            };
+
+            const setBusy = (isBusy) => {
+                sendButton.disabled = isBusy;
+                chatInput.disabled = isBusy;
+                chatStatus.textContent = isBusy ? "Sending to Phi-4..." : "";
+            };
+
+            const sendMessage = async () => {
+                const message = chatInput.value.trim();
+                if (!message) {
+                    return;
+                }
+
+                appendLine("You", message);
+                chatInput.value = "";
+                setBusy(true);
+
+                try {
+                    const response = await fetch("/Chat/Send", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ message })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error("Request failed");
+                    }
+
+                    const payload = await response.json();
+                    appendLine("Phi-4", payload.reply || "(no response)");
+                } catch (error) {
+                    appendLine("System", "Chat request failed. Check configuration and identity access.");
+                } finally {
+                    setBusy(false);
+                }
+            };
+
+            sendButton.addEventListener("click", sendMessage);
+            chatInput.addEventListener("keydown", (event) => {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    sendMessage();
+                }
+            });
+        })();
+    </script>
+}

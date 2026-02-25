@@ -107,6 +107,8 @@ module appService 'modules/appService.bicep' = {
     appPort: appPort
     appInsightsConnectionString: appInsights.outputs.connectionString
     appInsightsInstrumentationKey: appInsights.outputs.instrumentationKey
+    aiEndpoint: foundry.outputs.endpoint
+    phiDeploymentName: phiDeploymentName
   }
 }
 

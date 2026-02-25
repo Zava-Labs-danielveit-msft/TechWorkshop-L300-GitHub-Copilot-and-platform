@@ -45,3 +45,14 @@ body {
 .navbar-nav .nav-link {
   padding-right: 1rem;
 }
+
+/* Chat Styles */
+.chat-panel {
+  max-width: 820px;
+}
+
+.chat-log {
+  background-color: #f8f9fa;
+  font-family: "Consolas", "Courier New", monospace;
+  resize: none;
+}
