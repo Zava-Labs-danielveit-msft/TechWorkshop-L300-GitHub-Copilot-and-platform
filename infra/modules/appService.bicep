@@ -25,6 +25,12 @@ param appInsightsConnectionString string
 @description('Application Insights instrumentation key.')
 param appInsightsInstrumentationKey string
 
+@description('Azure AI Foundry endpoint for the app to call.')
+param aiEndpoint string
+
+@description('Phi deployment name to use for chat requests.')
+param phiDeploymentName string
+
 resource plan 'Microsoft.Web/serverfarms@2023-01-01' = {
   name: planName
   location: location
@@ -69,6 +75,14 @@ resource webApp 'Microsoft.Web/sites@2023-01-01' = {
         {
           name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
           value: appInsightsInstrumentationKey
+        }
+        {
+          name: 'Foundry__Endpoint'
+          value: aiEndpoint
+        }
+        {
+          name: 'Foundry__PhiDeployment'
+          value: phiDeploymentName
         }
       ]
     }
