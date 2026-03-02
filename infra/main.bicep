@@ -156,6 +156,16 @@ module contentSafety 'modules/contentSafety.bicep' = {
   }
 }
 
+module workbook 'modules/workbook.bicep' = {
+  name: 'ai-services-observability-workbook'
+  params: {
+    name: 'AI Services Observability'
+    location: location
+    logAnalyticsWorkspaceId: logAnalytics.outputs.id
+    workbookJson: loadTextContent('workbooks/workbook.json')
+  }
+}
+
 output acrLoginServer string = acr.outputs.loginServer
 output webAppName string = appService.outputs.name
 output aiEndpoint string = foundry.outputs.endpoint
