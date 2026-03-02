@@ -14,11 +14,14 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
+builder.Services.AddApplicationInsightsTelemetry();
+
 // Register application services
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ProductService>();
 builder.Services.AddScoped<CartService>();
 builder.Services.Configure<FoundryOptions>(builder.Configuration.GetSection("Foundry"));
+builder.Services.Configure<ContentSafetyOptions>(builder.Configuration.GetSection("ContentSafety"));
 builder.Services.AddHttpClient<FoundryChatService>();
 
 var app = builder.Build();

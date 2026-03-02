@@ -7,6 +7,22 @@ param location string
 @description('Resource tags')
 param tags object = {}
 
+@description('Log Analytics workspace resource ID for diagnostics.')
+param logAnalyticsWorkspaceId string
+
+@description('Diagnostic log categories to enable for Microsoft Foundry.')
+param diagnosticLogCategories array = [
+  'Audit'
+  'RequestResponse'
+  'AzureOpenAIRequestUsage'
+  'Trace'
+]
+
+@description('Diagnostic metric categories to enable for Microsoft Foundry.')
+param diagnosticMetricCategories array = [
+  'AllMetrics'
+]
+
 resource aiFoundry 'Microsoft.CognitiveServices/accounts@2024-04-01-preview' = {
   name: name
   location: location
@@ -21,7 +37,26 @@ resource aiFoundry 'Microsoft.CognitiveServices/accounts@2024-04-01-preview' = {
   properties: {
     customSubDomainName: name
     publicNetworkAccess: 'Enabled'
-    disableLocalAuth: false
+    disableLocalAuth: true
+  }
+}
+
+var diagnosticLogs = [for category in diagnosticLogCategories: {
+  category: category
+  enabled: true
+}]
+var diagnosticMetrics = [for category in diagnosticMetricCategories: {
+  category: category
+  enabled: true
+}]
+
+resource aiDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${name}-diagnostics'
+  scope: aiFoundry
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: diagnosticLogs
+    metrics: diagnosticMetrics
   }
 }
 

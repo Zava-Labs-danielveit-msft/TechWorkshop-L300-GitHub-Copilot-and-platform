@@ -29,6 +29,9 @@ param appPort string = '8080'
 @description('Azure AI (Foundry) account SKU.')
 param aiSkuName string = 'S0'
 
+@description('Azure AI Content Safety account SKU.')
+param contentSafetySkuName string = 'S0'
+
 @description('GPT-4 deployment name.')
 param gpt4DeploymentName string = 'gpt-4'
 
@@ -68,6 +71,7 @@ var appInsightsName = toLower('${namePrefix}-appi-${environmentName}')
 var appServicePlanName = toLower('${namePrefix}-asp-${environmentName}')
 var webAppName = toLower('${namePrefix}-web-${environmentName}-${suffix}')
 var aiAccountName = '${cleanPrefix}ai${suffix}'
+var contentSafetyName = '${cleanPrefix}cs${suffix}'
 
 module acr 'modules/acr.bicep' = {
   name: 'acr'
@@ -109,6 +113,7 @@ module appService 'modules/appService.bicep' = {
     appInsightsInstrumentationKey: appInsights.outputs.instrumentationKey
     aiEndpoint: foundry.outputs.endpoint
     phiDeploymentName: phiDeploymentName
+    contentSafetyEndpoint: contentSafety.outputs.endpoint
   }
 }
 
@@ -117,6 +122,8 @@ module roleAssignments 'modules/roleAssignments.bicep' = {
   params: {
     acrId: acr.outputs.id
     principalId: appService.outputs.principalId
+    foundryId: foundry.outputs.id
+    contentSafetyId: contentSafety.outputs.id
   }
 }
 
@@ -126,6 +133,7 @@ module foundry 'modules/foundry.bicep' = {
     name: aiAccountName
     location: location
     skuName: aiSkuName
+    logAnalyticsWorkspaceId: logAnalytics.outputs.id
     gpt4DeploymentName: gpt4DeploymentName
     gpt4ModelName: gpt4ModelName
     gpt4ModelVersion: gpt4ModelVersion
@@ -136,6 +144,15 @@ module foundry 'modules/foundry.bicep' = {
     phiModelVersion: phiModelVersion
     phiCapacity: phiCapacity
     enablePhiDeployment: enablePhiDeployment
+  }
+}
+
+module contentSafety 'modules/contentSafety.bicep' = {
+  name: 'content-safety'
+  params: {
+    name: contentSafetyName
+    location: location
+    skuName: contentSafetySkuName
   }
 }
 

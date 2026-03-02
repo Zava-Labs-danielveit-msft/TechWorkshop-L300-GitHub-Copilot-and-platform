@@ -7,6 +7,22 @@ param location string
 @description('SKU for the AI account (e.g. S0).')
 param skuName string = 'S0'
 
+@description('Log Analytics workspace resource ID for diagnostics.')
+param logAnalyticsWorkspaceId string
+
+@description('Diagnostic log categories to enable for Microsoft Foundry.')
+param diagnosticLogCategories array = [
+  'Audit'
+  'RequestResponse'
+  'AzureOpenAIRequestUsage'
+  'Trace'
+]
+
+@description('Diagnostic metric categories to enable for Microsoft Foundry.')
+param diagnosticMetricCategories array = [
+  'AllMetrics'
+]
+
 @description('GPT-4 deployment name.')
 param gpt4DeploymentName string
 
@@ -47,7 +63,26 @@ resource aiAccount 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   properties: {
     customSubDomainName: name
     publicNetworkAccess: 'Enabled'
-    disableLocalAuth: false
+    disableLocalAuth: true
+  }
+}
+
+var diagnosticLogs = [for category in diagnosticLogCategories: {
+  category: category
+  enabled: true
+}]
+var diagnosticMetrics = [for category in diagnosticMetricCategories: {
+  category: category
+  enabled: true
+}]
+
+resource aiDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${name}-diagnostics'
+  scope: aiAccount
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: diagnosticLogs
+    metrics: diagnosticMetrics
   }
 }
 
@@ -84,4 +119,5 @@ resource phiDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05
 }
 
 output name string = aiAccount.name
+output id string = aiAccount.id
 output endpoint string = aiAccount.properties.endpoint

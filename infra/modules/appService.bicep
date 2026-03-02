@@ -31,6 +31,9 @@ param aiEndpoint string
 @description('Phi deployment name to use for chat requests.')
 param phiDeploymentName string
 
+@description('Azure AI Content Safety endpoint for the app to call.')
+param contentSafetyEndpoint string
+
 resource plan 'Microsoft.Web/serverfarms@2023-01-01' = {
   name: planName
   location: location
@@ -83,6 +86,10 @@ resource webApp 'Microsoft.Web/sites@2023-01-01' = {
         {
           name: 'Foundry__PhiDeployment'
           value: phiDeploymentName
+        }
+        {
+          name: 'ContentSafety__Endpoint'
+          value: contentSafetyEndpoint
         }
       ]
     }
